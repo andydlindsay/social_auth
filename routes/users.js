@@ -35,8 +35,14 @@ module.exports = (passport) => {
     // router.get('/auth/facebook/callback') // handle the callback after user is authenticated
 
     // twitter
-    // router.get('/auth/twitter') // send to twitter for authentication
-    // router.get('/auth/twitter/callback') // handle the callback after user is authenticated
+    // send to twitter for authentication
+    router.get('/auth/twitter', passport.authenticate('twitter', { scope: 'email' }));
+
+    // handle the callback after user is authenticated
+    router.get('/auth/twitter/callback', passport.authenticate('twitter', {
+        successRedirect: '/',
+        failureRedirect: '/'
+    }));
 
     // google
     // router.get('/auth/google') // send to google for authentication

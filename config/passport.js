@@ -119,9 +119,8 @@ module.exports = function(passport) {
                 });
             // if the user is logged in but has no local account...
             } else if ( !req.user.local.email ) {
-                // ...presumably they're trying to connect a local account
-                // BUT let's check if the email used to connect a local account is being used by another user
                 User.findOne({ 'local.email' :  email }, function(err, user) {
+
                     if (err) {
                         console.error(err);
                         return done(err);
@@ -130,7 +129,6 @@ module.exports = function(passport) {
                     if (user) {
                         console.log('Duplicate email');
                         return done(null, false);
-                        // Using 'loginMessage instead of signupMessage because it's used by /connect/local'
                     } else {
                         var user = req.user;
                         user.local.email = email;
@@ -144,9 +142,10 @@ module.exports = function(passport) {
                             return done(null,user);
                         });
                     }
+
                 });
             } else {
-                // user is logged in and already has a local account. Ignore signup. (You should log out before trying to create a new account, user!)
+                // user is logged in and already has a local account
                 console.log('User already has local login connected');
                 return done(null, req.user);
             }
@@ -232,80 +231,92 @@ module.exports = function(passport) {
     // =========================================================================
     // TWITTER =================================================================
     // =========================================================================
-    // passport.use(new TwitterStrategy({
+    passport.use(new TwitterStrategy({
 
-    //     consumerKey     : configAuth.twitterAuth.consumerKey,
-    //     consumerSecret  : configAuth.twitterAuth.consumerSecret,
-    //     callbackURL     : configAuth.twitterAuth.callbackURL,
-    //     passReqToCallback : true // allows us to pass in the req from our route (lets us check if a user is logged in or not)
+        consumerKey     : process.env.TWITTER_CONSUMER_KEY,
+        consumerSecret  : process.env.TWITTER_CONSUMER_SECRET,
+        callbackURL     : 'http://localhost:8080/api/users/auth/twitter/callback',
+        passReqToCallback : true
 
-    // },
-    // function(req, token, tokenSecret, profile, done) {
+    },
+    function(req, token, tokenSecret, profile, done) {
 
-    //     // asynchronous
-    //     process.nextTick(function() {
+        // asynchronous
+        process.nextTick(function() {
 
-    //         // check if the user is already logged in
-    //         if (!req.user) {
+            // check if the user is already logged in
+            if (!req.user) {
 
-    //             User.findOne({ 'twitter.id' : profile.id }, function(err, user) {
-    //                 if (err)
-    //                     return done(err);
+                User.findOne({ 'twitter.id' : profile.id }, function(err, user) {
+                    if (err) {
+                        console.error(err);
+                        return done(err);
+                    }
 
-    //                 if (user) {
-    //                     // if there is a user id already but no token (user was linked at one point and then removed)
-    //                     if (!user.twitter.token) {
-    //                         user.twitter.token       = token;
-    //                         user.twitter.username    = profile.username;
-    //                         user.twitter.displayName = profile.displayName;
+                    if (user) {
+                        // if there is a user id already but no token
+                        if (!user.twitter.token) {
+                            user.twitter.token       = token;
+                            user.twitter.username    = profile.username;
+                            user.twitter.displayName = profile.displayName;
 
-    //                         user.save(function(err) {
-    //                             if (err)
-    //                                 return done(err);
+                            user.save(function(err) {
+                                if (err) {
+                                    console.error(err);
+                                    return done(err);
+                                }
                                     
-    //                             return done(null, user);
-    //                         });
-    //                     }
+                                console.log('Twitter re-connected')
+                                return done(null, user);
+                            });
+                        }
 
-    //                     return done(null, user); // user found, return that user
-    //                 } else {
-    //                     // if there is no user, create them
-    //                     var newUser                 = new User();
+                        console.log('Twitter connection exists already');
+                        return done(null, user);
+                    } else {
+                        // if there is no user, create them
+                        var newUser                 = new User();
 
-    //                     newUser.twitter.id          = profile.id;
-    //                     newUser.twitter.token       = token;
-    //                     newUser.twitter.username    = profile.username;
-    //                     newUser.twitter.displayName = profile.displayName;
+                        newUser.twitter.id          = profile.id;
+                        newUser.twitter.token       = token;
+                        newUser.twitter.username    = profile.username;
+                        newUser.twitter.displayName = profile.displayName;
 
-    //                     newUser.save(function(err) {
-    //                         if (err)
-    //                             return done(err);
+                        newUser.save(function(err) {
+                            if (err) {
+                                console.error(err);
+                                return done(err);
+                            }
                                 
-    //                         return done(null, newUser);
-    //                     });
-    //                 }
-    //             });
+                            console.log('Twitter connection saved successfully');
+                            return done(null, newUser);
+                        });
+                    }
+                });
 
-    //         } else {
-    //             // user already exists and is logged in, we have to link accounts
-    //             var user                 = req.user; // pull the user out of the session
+            } else {
+                // user already exists and is logged in, we have to link accounts
+                var user                 = req.user; // pull the user out of the session
 
-    //             user.twitter.id          = profile.id;
-    //             user.twitter.token       = token;
-    //             user.twitter.username    = profile.username;
-    //             user.twitter.displayName = profile.displayName;
+                user.twitter.id          = profile.id;
+                user.twitter.token       = token;
+                user.twitter.username    = profile.username;
+                user.twitter.displayName = profile.displayName;
 
-    //             user.save(function(err) {
-    //                 if (err)
-    //                     return done(err);
-                        
-    //                 return done(null, user);
-    //             });
-    //         }
+                user.save(function(err) {
+                    if (err) {
+                        console.error(err);
+                        return done(err);
+                    }
+                    
+                    console.log('Twitter account connected');
+                    return done(null, user);
+                });
+            }
 
-    //     });
+        });
 
-    // }));
+    }));
 
     // =========================================================================
     // GOOGLE ==================================================================
