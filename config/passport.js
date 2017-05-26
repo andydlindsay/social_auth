@@ -1,11 +1,10 @@
-// load all the things we need
-var LocalStrategy    = require('passport-local').Strategy;
-var FacebookStrategy = require('passport-facebook').Strategy;
-var TwitterStrategy  = require('passport-twitter').Strategy;
-var GoogleStrategy   = require('passport-google-oauth').OAuth2Strategy;
+const LocalStrategy    = require('passport-local').Strategy,
+      FacebookStrategy = require('passport-facebook').Strategy,
+      TwitterStrategy  = require('passport-twitter').Strategy,
+      GoogleStrategy   = require('passport-google-oauth').OAuth2Strategy;
 
-// load up the user model
-var User       = require('../models/user');
+// user model
+const User       = require('../models/user');
 
 // load the auth variables
 // var configAuth = require('./auth'); // use this one for testing
@@ -47,19 +46,25 @@ module.exports = function(passport) {
         process.nextTick(function() {
             User.findOne({ 'local.email' :  email }, function(err, user) {
                 // if there are any errors, return the error
-                if (err)
+                if (err) {
+                    console.error(err);
                     return done(err);
+                }
 
                 // if no user is found, return the message
-                if (!user)
-                    return done(null, false, req.flash('loginMessage', 'No user found.'));
+                if (!user) {
+                    console.log('No user found.');
+                    return done(null, false);
+                }
 
-                if (!user.validPassword(password))
-                    return done(null, false, req.flash('loginMessage', 'Oops! Wrong password.'));
-
-                // all is well, return user
-                else
+                if (!User.validPassword(password, user.local.password)) {
+                    console.log('Password does not match.');
+                    return done(null, false);
+                } else {
+                    console.log('Email and password matched.')
                     return done(null, user);
+                }
+
             });
         });
 
@@ -84,24 +89,29 @@ module.exports = function(passport) {
             if (!req.user) {
                 User.findOne({ 'local.email' :  email }, function(err, user) {
                     // if there are any errors, return the error
-                    if (err)
+                    if (err) {
+                        console.error(err);
                         return done(err);
+                    }
 
                     // check to see if theres already a user with that email
                     if (user) {
-                        return done(null, false, req.flash('signupMessage', 'That email is already taken.'));
+                        console.log('Duplicate email.');
+                        return done(null, false);
                     } else {
 
                         // create the user
-                        var newUser            = new User();
+                        var newUser = new User();
 
-                        newUser.local.email    = email;
-                        newUser.local.password = newUser.generateHash(password);
+                        newUser.local.email = email;
+                        newUser.local.password = User.generateHash(password);
 
                         newUser.save(function(err) {
-                            if (err)
+                            if (err) {
+                                console.error(err);
                                 return done(err);
-
+                            }
+                            console.log('User saved successfully');
                             return done(null, newUser);
                         });
                     }
@@ -112,26 +122,32 @@ module.exports = function(passport) {
                 // ...presumably they're trying to connect a local account
                 // BUT let's check if the email used to connect a local account is being used by another user
                 User.findOne({ 'local.email' :  email }, function(err, user) {
-                    if (err)
+                    if (err) {
+                        console.error(err);
                         return done(err);
+                    }
                     
                     if (user) {
-                        return done(null, false, req.flash('loginMessage', 'That email is already taken.'));
+                        console.log('Duplicate email');
+                        return done(null, false);
                         // Using 'loginMessage instead of signupMessage because it's used by /connect/local'
                     } else {
                         var user = req.user;
                         user.local.email = email;
-                        user.local.password = user.generateHash(password);
+                        user.local.password = User.generateHash(password);
                         user.save(function (err) {
-                            if (err)
+                            if (err) {
+                                console.error(err);
                                 return done(err);
-                            
+                            }
+                            console.log('Local login connected');
                             return done(null,user);
                         });
                     }
                 });
             } else {
                 // user is logged in and already has a local account. Ignore signup. (You should log out before trying to create a new account, user!)
+                console.log('User already has local login connected');
                 return done(null, req.user);
             }
 

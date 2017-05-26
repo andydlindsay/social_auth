@@ -63,17 +63,10 @@ const User = module.exports = mongoose.model("User", userSchema, "users");
 // User methods
 // generate hash
 module.exports.generateHash = function(password) {
-    bcrypt.genSalt(10, (err, salt) => {
-        bcrypt.hash(password, salt, (err, hash) => {
-            if (err) throw err;
-            return hash;
-        });
-    });
+    return bcrypt.hashSync(password, bcrypt.genSaltSync(10), null);
 }
 
 // check password
-module.exports.validPassword = function(password) {
-    bcrypt.compare(password, this.local.password, (err, isMatch) => {
-        return isMatch;
-    });
+module.exports.validPassword = function(password, comparePassword) {
+    return bcrypt.compareSync(password, comparePassword);
 }

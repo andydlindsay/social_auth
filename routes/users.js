@@ -4,12 +4,31 @@ module.exports = (passport) => {
     const router = express.Router();
 
     // =============================================================================
+    // BASIC ROUTES
+    // =============================================================================
+
+    router.get('/logout', (req, res) => {
+        req.logout();
+        res.redirect('/');
+    });
+
+    // =============================================================================
     // AUTHENTICATE
     // =============================================================================
 
     // local
-    // router.post('/login') // process the login form
-    // router.post('/signup') // process the signup/register form
+    // process the login form
+    router.post('/login', passport.authenticate('local-login', {
+        successRedirect: '/',
+        failureRedirect: '/'
+    }));
+
+    // process the signup/register form
+    router.post('/signup', passport.authenticate('local-signup', {
+        successRedirect: '/',
+        failureRedirect: '/'
+    }));
+
 
     // facebook
     // router.get('/auth/facebook') // send to facebook for authentication
